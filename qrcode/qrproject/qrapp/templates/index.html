@@ -1,0 +1,249 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e5e6ea, #a777e3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            width: 100%;
+            max-width: 500px;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            animation: container-entry 1s ease-out;
+        }
+
+        @keyframes container-entry {
+            from {
+                opacity: 0;
+                transform: translateY(20px) rotateX(-10deg);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateX(0);
+            }
+        }
+
+        .title {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .title h2 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #6e8efb, #a777e3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: title-animation 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes title-animation {
+            from {
+                transform: translateZ(0);
+            }
+            to {
+                transform: translateZ(50px);
+            }
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease;
+        }
+
+        .input-group:hover {
+            transform: translateZ(20px);
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        input:focus {
+            border-color: #6e8efb;
+            box-shadow: 0 0 15px rgba(110, 142, 251, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(45deg, #6e8efb, #a777e3);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        button:hover {
+            transform: translateZ(20px);
+            box-shadow: 0 8px 20px rgba(110, 142, 251, 0.3);
+        }
+
+        button:active {
+            transform: translateZ(10px);
+        }
+
+        .qr-container {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            perspective: 1000px;
+        }
+
+        .qr-code {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.5s ease;
+            transform-style: preserve-3d;
+            animation: qr-entry 0.5s ease-out;
+        }
+
+        @keyframes qr-entry {
+            from {
+                opacity: 0;
+                transform: rotateY(-90deg);
+            }
+            to {
+                opacity: 1;
+                transform: rotateY(0);
+            }
+        }
+
+        .qr-code:hover {
+            transform: rotate3d(1, 1, 0, 15deg);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .qr-code img {
+            display: block;
+            max-width: 200px;
+            height: auto;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #fefeff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">
+            <h2>QR Code Generator</h2>
+            <p>Enter your URL to generate a QR code</p>
+        </div>
+        
+        <form method="POST" action="{% url 'generate_qr' %}" id="qrForm">
+            {% csrf_token %}
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    name="url" 
+                    id="linkInput" 
+                    placeholder="Enter a URL" 
+                    required
+                >
+            </div>
+            <button type="submit">Generate QR Code</button>
+        </form>
+
+        <div class="loading" id="loading"></div>
+        
+        <div class="qr-container">
+            {% if qr_url %}
+                <div class="qr-code">
+                    <img id="qrImage" src="{{ qr_url }}" alt="QR Code">
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('qrForm').addEventListener('submit', function() {
+            document.getElementById('loading').style.display = 'block';
+        });
+
+        // If QR code exists, add hover effect listeners
+        const qrCode = document.querySelector('.qr-code');
+        if (qrCode) {
+            qrCode.addEventListener('mousemove', function(e) {
+                const rect = this.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const rotateX = (y - centerY) / 20;
+                const rotateY = (centerX - x) / 20;
+                
+                this.style.transform = `rotate3d(1, 1, 0, ${Math.sqrt(rotateX * rotateX + rotateY * rotateY)}deg)`;
+            });
+
+            qrCode.addEventListener('mouseleave', function() {
+                this.style.transform = 'rotate3d(0, 0, 0, 0deg)';
+            });
+        }
+    </script>
+</body>
+</html>
