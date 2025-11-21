@@ -15,8 +15,7 @@ A professional Django-based QR code generator with a modern, attractive UI. Gene
 -  **Secure** - No data storage, privacy-focused
 -  **Free to Use** - Open source and completely free
 
- ![qrcodepage](qrcode/a.png)
-
+[!qrcodepage ](a.png)
 
 ## Tech Stack
 
